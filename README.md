@@ -11,13 +11,13 @@ First of all, you need to install OpenCV for C++: [How to install](https://docs.
 When dependencies are install, to compile the code:
 
 ```bash
-g++ image_scaling.cpp -o image_scaling -std=c++11 `pkg-config --cflags --libs opencv`
+g++ image_scaling.cpp -o image_scaling -std=c++11 `pkg-config --cflags --libs opencv` -lpthread
 ```
 
 To run:
 
 ```bash
-./image_scaling ./image1_720p.jpg ./result.jpg 4
+./image_scaling ./image1_720p.jpg ./result.jpg 4 Nearest
 ```
 run script:
 
@@ -30,3 +30,4 @@ This accepts 3 parameters:
 1. Source input image path.
 2. Result image path.
 3. Number of threads.
+4. Algorithm -  Nearest / Bilinear
