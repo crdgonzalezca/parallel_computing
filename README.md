@@ -19,6 +19,11 @@ To run:
 ```bash
 ./image_scaling ./image1_720p.jpg ./result.jpg 4
 ```
+run script:
+
+```bash
+bash script.sh
+```
 
 This accepts 3 parameters:
 
