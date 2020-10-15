@@ -151,11 +151,10 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     
-    int r = 0;
     for (int iterator = 0; iterator < ITERATIONS; iterator++){
         start = get_timestamp();
 
-         #pragma omp parallel num_threads(THREADS) //inicio de region paralela
+        #pragma omp parallel num_threads(THREADS) //inicio de region paralela
         {
             int ID = omp_get_thread_num();
             
@@ -163,17 +162,9 @@ int main(int argc, char* argv[]) {
                 nearest_neighbour_scaling(ID);
             }else if(algorithm == "Bilinear"){
                 bilinear_scaling(ID);
-            }
-            if(r != 0) {
-                perror("\n-->No puedo crear hilo");
-                exit(-1);
-            }
-        
+            }        
         } //fin de region paralela
 
-        /*for(int i = 0; i < THREADS; i++){
-            pthread_join(thread[i], (void **)&retval);
-        }*/
         imwrite(result_image_path, result_image); //write the image to a file
 
         end = get_timestamp();
@@ -189,7 +180,7 @@ int main(int argc, char* argv[]) {
     printf("Time Elapsed: %f\n", avg_end);
 
     FILE * fp;
-    fp = fopen("results.csv", "a");        
+    fp = fopen("results_openmp.csv", "a");        
     if (fp==NULL) {fputs ("File error",stderr); exit (1);}
     fprintf(fp,"%f,%d,%s,%s\n",avg_end, THREADS, source_image_path.c_str(), algorithm.c_str());
     fclose ( fp );
