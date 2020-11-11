@@ -152,8 +152,9 @@ NVCC          := $(CUDA_PATH)/bin/nvcc -ccbin $(HOST_COMPILER)
 
 # internal flags
 NVCCFLAGS   := -m${TARGET_SIZE}
-CCFLAGS     := -std=c++11
+CCFLAGS     :=
 LDFLAGS     :=
+EXTRA_CCFLAGS = -std=c++11
 
 OPENCV = `pkg-config opencv --cflags --libs`
 
