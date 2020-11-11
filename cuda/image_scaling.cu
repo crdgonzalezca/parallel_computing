@@ -62,7 +62,7 @@ __global__ void vectorAdd(unsigned char *input_image, unsigned char *output_imag
 int main(int argc, char* argv[]) {
 
     // Read parameters 1- source path, 2- Destination path, 3- Number of threads, 4- algorithm
-    if (argc != 5) {
+    if (argc != 4) {
         cout << "Arguments are not complete. Usage: image_path image_result_path n_threads algorithm" << endl;
         return 1;
     }
@@ -80,6 +80,7 @@ int main(int argc, char* argv[]) {
     // Read the image from the given source path
     input_image = imread(source_image_path);
     if(input_image.empty()) {
+        printf("Error reading image.")
         return 1;
     }
 
