@@ -168,7 +168,7 @@ int main(int argc, char* argv[]) {
     // Finish count time
     end = get_timestamp();
     total = end - start + 0.0;
-    float avg_end = avg / MS;
+    float avg_end = total / MS;
     printf("Time Elapsed: %f\n", avg_end);
     printf("Done\n");
     return 0;
