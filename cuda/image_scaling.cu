@@ -80,7 +80,7 @@ int main(int argc, char* argv[]) {
     // Read the image from the given source path
     input_image = imread(source_image_path);
     if(input_image.empty()) {
-        printf("Error reading image.")
+        printf("Error reading image.");
         return 1;
     }
 
