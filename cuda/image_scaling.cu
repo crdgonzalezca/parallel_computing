@@ -185,6 +185,8 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
+    imwrite(result_image_path, output_image); //write the image to a file
+
     printf("Done\n");
     return 0;
 }
