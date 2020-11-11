@@ -44,15 +44,15 @@ __global__ void vectorAdd(unsigned char *input_image, unsigned char *output_imag
 		//Location of gray pixel in output
 		// const int gray_tid = yIndex * outputWidthStep + xIndex;
 
-		const unsigned char blue = input[color_tid];
-		const unsigned char green = input[color_tid + 1];
-		const unsigned char red = input[color_tid + 2];
+		const unsigned char blue = input_image[color_tid];
+		const unsigned char green = input_image[color_tid + 1];
+		const unsigned char red = input_image[color_tid + 2];
 
 		const float gray = red * 0.3f + green * 0.59f + blue * 0.11f;
 
-        output[gray_tid] = static_cast<unsigned char>(gray);
-        output[gray_tid + 1] = static_cast<unsigned char>(gray);
-        output[gray_tid + 2] = static_cast<unsigned char>(gray);
+        output_image[color_tid] = static_cast<unsigned char>(gray);
+        output_image[color_tid + 1] = static_cast<unsigned char>(gray);
+        output_image[color_tid + 2] = static_cast<unsigned char>(gray);
     }
 }
 
@@ -68,8 +68,8 @@ int main(int argc, char* argv[]) {
     }
     string source_image_path = argv[1];
     string result_image_path = argv[2];
-    THREADS = atoi(argv[3]);
-    string algorithm = argv[4];
+    // THREADS = atoi(argv[3]);
+    string algorithm = argv[3];
 
     // time measurement variables
     timestamp_t start, end;
@@ -146,8 +146,8 @@ int main(int argc, char* argv[]) {
 	//Calculate grid size to cover the whole image
     const dim3 grid((output_image.cols + block.x - 1) / block.x, (output_image.rows + block.y - 1) / block.y);
     
-    int threadsPerBlock = 256;
-    int blocksPerGrid =(numElements + threadsPerBlock - 1) / threadsPerBlock;
+    //int threadsPerBlock = 256;
+    //int blocksPerGrid =(numElements + threadsPerBlock - 1) / threadsPerBlock;
     printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid, threadsPerBlock);
     vectorAdd<<<grid, block>>>(d_input, d_output, output_image.cols, output_image.rows, input_image.step, output_image.step);
 //    vectorAdd<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_B, d_C, numElements);
