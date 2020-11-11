@@ -147,8 +147,8 @@ int main(int argc, char* argv[]) {
     const dim3 grid((output_image.cols + block.x - 1) / block.x, (output_image.rows + block.y - 1) / block.y);
     
     //int threadsPerBlock = 256;
-    //int blocksPerGrid =(numElements + threadsPerBlock - 1) / threadsPerBlock;
-    printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid, threadsPerBlock);
+    // int blocksPerGrid =(numElements + threadsPerBlock - 1) / threadsPerBlock;
+    // printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid, threadsPerBlock);
     vectorAdd<<<grid, block>>>(d_input, d_output, output_image.cols, output_image.rows, input_image.step, output_image.step);
 //    vectorAdd<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_B, d_C, numElements);
     err = cudaGetLastError();
