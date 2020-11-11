@@ -16,10 +16,6 @@ using namespace std;
 
 typedef unsigned long long timestamp_t;
 
-// Create result image of 720x480 pixels with 3 channels
-Mat output_image(RESULT_HEIGHT, RESULT_WIDTH, CV_8UC3, Scalar(255, 255, 255)); 
-Mat input_image;
-
 timestamp_t get_timestamp (){
     struct timeval now;
     gettimeofday (&now, NULL);
@@ -65,39 +61,18 @@ __global__ void nearest_neighbour_scaling(
     int width_output, 
     int height_output,
     int channels_output) {
-
-    //const int width_input = dims_input.get(0);
-    //const int height_input = dims_input.get(1);
-    //const int channels_input = dims_input.get(2);
-
-    //const int width_output = dims_output.get(0);
-    //const int height_output = dims_output.get(1);
-    //const int channels_output = dims_output.get(2);
-
     const float x_ratio = (width_input + 0.0) / width_output;
     const float y_ratio = (height_input + 0.0) / height_output;
 
     //2D Index of current thread
 	const int xIndex = blockIdx.x * blockDim.x + threadIdx.x;
     const int yIndex = blockIdx.y * blockDim.y + threadIdx.y;
-    if ((xIndex < 100) && (yIndex < 100))
-        printf("%d - %d\n", xIndex, yIndex);
+    //if ((xIndex < 100) && (yIndex < 100))
+    //    printf("%d - %d\n", xIndex, yIndex);
 
     int px = 0, py = 0; 
-    
-    //uchar *ptr_source = nullptr;
-    //uchar *ptr_target = nullptr;
-
-    //int id = *(int *)idv;
-    //int n_raws = height_output / THREADS;
-    //int initial_y = n_raws * id;
-    //int end_y = initial_y + n_raws;
-
-    // Iterate over the rows
-    //for (; initial_y < end_y; initial_y++) {
-        //ptr_target = result_image.ptr<uchar>(initial_y);
-        // Iterate over the cols
-        //for (int j = 0; j < width_output; j++) {
+    int input_width_step = width_input * channels_input;
+    int output_width_step = width_output * channels_output;
     if ((xIndex < width_output) && (yIndex < height_output)){
         py = ceil(yIndex * y_ratio);
         px = ceil(xIndex * x_ratio);
@@ -105,7 +80,7 @@ __global__ void nearest_neighbour_scaling(
             
             // Calculate the value of the i,j pixel for each channel
         for (int channel = 0; channel < channels_output; channel++){
-            output_image[yIndex * xIndex * channels_output + channel] =  input_image[py * px * channels_input + channel];
+            *(output_image + (yIndex * output_width_step + xIndex * channels_output + channel)) =  *(input_image + (py * input_width_step + px * channels_output +  + channel));
         }
     }
 }
@@ -131,16 +106,18 @@ int main(int argc, char* argv[]) {
     // Error code to check return values for CUDA calls
     cudaError_t err = cudaSuccess;
 
+    // Create result image of 720x480 pixels with 3 channels
+    Mat output_image(RESULT_HEIGHT, RESULT_WIDTH, CV_8UC3, Scalar(255, 255, 255)); 
     // Read the image from the given source path
-    input_image = imread(source_image_path);
+    Mat input_image = imread(source_image_path);
     if(input_image.empty()) {
         printf("Error reading image.");
         return 1;
     }
 
     // Matrices sizes width * height * 3
-    const int input_bytes = input_image.step * input_image.rows;
-    const int output_bytes = output_image.step * output_image.rows;
+    const int input_bytes = input_image.cols * input_image.rows * input_image.channels() * sizeof(unsigned char);
+    const int output_bytes = output_image.cols * output_image.rows * output_image.channels() * sizeof(unsigned char);
 
     unsigned char *d_input, *d_output;
     // Allocate the device input image
@@ -173,23 +150,30 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    // Launch the Vector Add CUDA Kernel
-    const dim3 block(16, 16);
+    printf("Copy input data from the host memory to the CUDA device\n");
+    err = cudaMemcpy(d_output, output_image.ptr(), output_bytes, cudaMemcpyHostToDevice);
 
-	//Calculate grid size to cover the whole image
-    const dim3 grid((output_image.cols + block.x - 1) / block.x, (output_image.rows + block.y - 1) / block.y);
+    if (err != cudaSuccess) {
+        fprintf(stderr, "Failed to copy output image from host to device (error code %s)!\n", cudaGetErrorString(err));
+        exit(EXIT_FAILURE);
+    }    
     
     //int threadsPerBlock = 256;
     // int blocksPerGrid =(numElements + threadsPerBlock - 1) / threadsPerBlock;
     // printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid, threadsPerBlock);
-    int width_input = input_image.size().width;
-    int height_input = input_image.size().height;
+    int width_input = input_image.cols;
+    int height_input = input_image.rows;
     int channels_input = input_image.channels();
-    int width_output = output_image.size().width;
-    int height_output = output_image.size().height;
+    int width_output = output_image.cols;
+    int height_output = output_image.rows;
     int channels_output = output_image.channels();
 
-    nearest_neighbour_scaling<<<grid, block>>>(d_input, d_output, width_input, height_input, channels_input, width_output, height_output, channels_output);
+    // Launch the Vector Add CUDA Kernel
+    const dim3 threadsPerBlock(16, 16);
+
+	//Calculate numBlocks size to cover the whole image
+    const dim3 numBlocks((width_output + threadsPerBlock.x - 1) / threadsPerBlock.x, (height_output + threadsPerBlock.y - 1) / threadsPerBlock.y);
+    nearest_neighbour_scaling<<<numBlocks, threadsPerBlock>>>(d_input, d_output, width_input, height_input, channels_input, width_output, height_output, channels_output);
 //    vectorAdd<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_B, d_C, numElements);
     err = cudaGetLastError();
 
