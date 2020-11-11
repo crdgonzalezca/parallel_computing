@@ -80,8 +80,8 @@ __global__ void nearest_neighbour_scaling(
     //2D Index of current thread
 	const int xIndex = blockIdx.x * blockDim.x + threadIdx.x;
     const int yIndex = blockIdx.y * blockDim.y + threadIdx.y;
-    if (xIndex < 100 && yIndex < 100)
-        printf("%d - %d", xIndex, yIndex);
+    if ((xIndex < 100) && (yIndex < 100))
+        printf("%d - %d\n", xIndex, yIndex);
 
     int px = 0, py = 0; 
     
@@ -98,16 +98,16 @@ __global__ void nearest_neighbour_scaling(
         //ptr_target = result_image.ptr<uchar>(initial_y);
         // Iterate over the cols
         //for (int j = 0; j < width_output; j++) {
-//    if ((xIndex < width) && (yIndex < height)){
-//           py = ceil(yIndex * y_ratio);
-//            px = ceil(xIndex * x_ratio);
+    if ((xIndex < width_output) && (yIndex < height_output)){
+        py = ceil(yIndex * y_ratio);
+        px = ceil(xIndex * x_ratio);
             //ptr_source = img.ptr<uchar>(py);
             
             // Calculate the value of the i,j pixel for each channel
-//            for (int channel = 0; channel < channels_output; channel++){
-//                ptr_target[j * channels_output + channel] =  ptr_source[channels_input * px + channel];
-//            }
-//    }
+        for (int channel = 0; channel < channels_output; channel++){
+            ptr_target[yIndex * xIndex * channels_output + channel] =  ptr_source[py * px * channels_input + channel];
+        }
+    }
 }
 
 
