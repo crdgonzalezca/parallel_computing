@@ -99,9 +99,14 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    // Copy the host input vectors A and B in host memory to the device input vectors in
-    // device memory
-    //printf("Copy input data from the host memory to the CUDA device\n");
+    err = cudaMalloc<unsigned char>(&d_output, output_bytes);
+
+    if (err != cudaSuccess) {
+        fprintf(stderr, "Failed to allocate device output image (error code %s)!\n", cudaGetErrorString(err));
+        exit(EXIT_FAILURE);
+    }
+
+    // Copy the host input image in host memory to the device input image in device memory
     err = cudaMemcpy(d_input, input_image.ptr(), input_bytes, cudaMemcpyHostToDevice);
 
     if (err != cudaSuccess) {
@@ -109,14 +114,6 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    //printf("Copy input data from the host memory to the CUDA device\n");
-    err = cudaMemcpy(d_output, output_image.ptr(), output_bytes, cudaMemcpyHostToDevice);
-
-    if (err != cudaSuccess) {
-        fprintf(stderr, "Failed to copy output image from host to device (error code %s)!\n", cudaGetErrorString(err));
-        exit(EXIT_FAILURE);
-    }    
-    
     int width_input = input_image.cols;
     int height_input = input_image.rows;
     int channels_input = input_image.channels();
