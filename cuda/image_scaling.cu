@@ -106,7 +106,6 @@ __global__ void nearest_neighbour_scaling(
 //                ptr_target[j * channels_output + channel] =  ptr_source[channels_input * px + channel];
 //            }
 //    }
-    return 0;
 }
 
 
