@@ -61,14 +61,14 @@ __global__ void nearest_neighbour_scaling(
  */
 int main(int argc, char* argv[]) {
     // Read parameters 1- source path, 2- Destination path, 3- algorithm
-    if (argc != 4) {
+    if (argc != 5) {
         cout << "Arguments are not complete. Usage: image_path image_result_path n_threads algorithm" << endl;
         return 1;
     }
     const string source_image_path = argv[1];
     const string result_image_path = argv[2];
     const int threads = atoi(argv[3]);
-    const string algorithm = argv[3];
+    const string algorithm = argv[4];
 
     // time measurement variables
     cudaEvent_t start, end;
