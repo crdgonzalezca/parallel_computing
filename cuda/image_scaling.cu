@@ -59,18 +59,20 @@ __global__ void vectorAdd(unsigned char *input_image, unsigned char *output_imag
 __global__ void nearest_neighbour_scaling(
     unsigned char *input_image, 
     unsigned char *output_image,
-    tuple <int, int, int> dims_input, 
-    tuple <int, int, int> dims_output,
-    int inputWidthStep, 
-    int outputWidthStep) {
+    int width_input, 
+    int height_input,
+    int channels_input,
+    int width_output, 
+    int height_output,
+    int channels_output) {
 
-    const int width_input = dims_input.get(0);
-    const int height_input = dims_input.get(1);
-    const int channels_input = dims_input.get(2);
+    //const int width_input = dims_input.get(0);
+    //const int height_input = dims_input.get(1);
+    //const int channels_input = dims_input.get(2);
 
-    const int width_output = dims_output.get(0);
-    const int height_output = dims_output.get(1);
-    const int channels_output = dims_output.get(2);
+    //const int width_output = dims_output.get(0);
+    //const int height_output = dims_output.get(1);
+    //const int channels_output = dims_output.get(2);
 
     const float x_ratio = (width_input + 0.0) / width_output;
     const float y_ratio = (height_input + 0.0) / height_output;
@@ -180,9 +182,14 @@ int main(int argc, char* argv[]) {
     //int threadsPerBlock = 256;
     // int blocksPerGrid =(numElements + threadsPerBlock - 1) / threadsPerBlock;
     // printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid, threadsPerBlock);
-    tuple <int, int, int> dims_input = make_tuple(input_image.size().width, input_image.size().height, input_image.channels);
-    tuple <int, int, int> dims_output = make_tuple(output_image.size().width, output_image.size().height, output_image.channels);
-    nearest_neighbour_scaling<<<grid, block>>>(d_input, d_output, dims_input, dims_output, input_image.step, output_image.step);
+    int width_input = input_image.size().width;
+    int height_input = input_image.size().height;
+    int channels_input = input_image.channels();
+    int width_output = output_image.size().width;
+    int height_output = output_image.size().height;
+    int channels_output = output_image.channels();
+
+    nearest_neighbour_scaling<<<grid, block>>>(d_input, d_output, width_input, height_input, channels_input, width_output, height_output, channels_output);
 //    vectorAdd<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_B, d_C, numElements);
     err = cudaGetLastError();
 
