@@ -71,7 +71,6 @@ int main(int argc, char* argv[]) {
 
     // time measurement variables
     cudaEvent_t start, end, total;
-    cudaEvent_t start;
 
     // Error code to check return values for CUDA calls
     cudaError_t err = cudaSuccess;
@@ -84,8 +83,6 @@ int main(int argc, char* argv[]) {
         printf("Error reading image.");
         return 1;
     }
-    // Start count time
-    start = get_timestamp();
     
     // Matrices sizes width * height * 3
     const int input_bytes = input_image.cols * input_image.rows * input_image.channels() * sizeof(unsigned char);
@@ -119,7 +116,7 @@ int main(int argc, char* argv[]) {
     }
 
     err = cudaEventCreate(&end);
-    if (error != cudaSuccess) {
+    if (err != cudaSuccess) {
         fprintf(stderr, "Failed to create stop event (error code %s)!\n", cudaGetErrorString(err));
         exit(EXIT_FAILURE);
     }
@@ -207,12 +204,6 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "Failed to free device vector B (error code %s)!\n", cudaGetErrorString(err));
         exit(EXIT_FAILURE);
     }
-
-    // Finish count time
-    end = get_timestamp();
-    total = end - start + 0.0;
-    float avg_end = total / MS;
-    printf("Time Elapsed: %f\n", avg_end);
     printf("Done\n");
     return 0;
 }
