@@ -65,12 +65,13 @@ int main(int argc, char* argv[]) {
         cout << "Arguments are not complete. Usage: image_path image_result_path n_threads algorithm" << endl;
         return 1;
     }
-    string source_image_path = argv[1];
-    string result_image_path = argv[2];
-    string algorithm = argv[3];
+    const string source_image_path = argv[1];
+    const string result_image_path = argv[2];
+    const int threads = atoi(argv[3]);
+    const string algorithm = argv[3];
 
     // time measurement variables
-    cudaEvent_t start, end, total;
+    cudaEvent_t start, end;
 
     // Error code to check return values for CUDA calls
     cudaError_t err = cudaSuccess;
@@ -136,8 +137,8 @@ int main(int argc, char* argv[]) {
     int channels_output = output_image.channels();
 
     // Launch the Vector Add CUDA Kernel
-    const dim3 threadsPerBlock(16, 16);
-    const dim3 numBlocks((width_output + threadsPerBlock.x - 1) / threadsPerBlock.x, (height_output + threadsPerBlock.y - 1) / threadsPerBlock.y);
+    const dim3 threadsPerBlock(threads, threads);
+    const dim3 numBlocks(width_output / threadsPerBlock.x, height_output / threadsPerBlock.y);
 
     for(int i = 0; i < ITERATIONS; i++){
         //Calculate numBlocks size to cover the whole image
