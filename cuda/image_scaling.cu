@@ -56,11 +56,64 @@ __global__ void vectorAdd(unsigned char *input_image, unsigned char *output_imag
     }
 }
 
+__global__ void nearest_neighbour_scaling(
+    unsigned char *input_image, 
+    unsigned char *output_image,
+    tuple <int, int, int> dims_input, 
+    tuple <int, int, int> dims_output,
+    int inputWidthStep, 
+    int outputWidthStep) {
+
+    const int width_input = dims_input.get(0);
+    const int height_input = dims_input.get(1);
+    const int channels_input = dims_input.get(2);
+
+    const int width_output = dims_output.get(0);
+    const int height_output = dims_output.get(1);
+    const int channels_output = dims_output.get(2);
+
+    const float x_ratio = (width_input + 0.0) / width_output;
+    const float y_ratio = (height_input + 0.0) / height_output;
+
+    //2D Index of current thread
+	const int xIndex = blockIdx.x * blockDim.x + threadIdx.x;
+    const int yIndex = blockIdx.y * blockDim.y + threadIdx.y;
+    if (xIndex < 100 && yIndex < 100)
+        printf("%d - %d", xIndex, yIndex);
+
+    int px = 0, py = 0; 
+    
+    //uchar *ptr_source = nullptr;
+    //uchar *ptr_target = nullptr;
+
+    //int id = *(int *)idv;
+    //int n_raws = height_output / THREADS;
+    //int initial_y = n_raws * id;
+    //int end_y = initial_y + n_raws;
+
+    // Iterate over the rows
+    //for (; initial_y < end_y; initial_y++) {
+        //ptr_target = result_image.ptr<uchar>(initial_y);
+        // Iterate over the cols
+        //for (int j = 0; j < width_output; j++) {
+//    if ((xIndex < width) && (yIndex < height)){
+//           py = ceil(yIndex * y_ratio);
+//            px = ceil(xIndex * x_ratio);
+            //ptr_source = img.ptr<uchar>(py);
+            
+            // Calculate the value of the i,j pixel for each channel
+//            for (int channel = 0; channel < channels_output; channel++){
+//                ptr_target[j * channels_output + channel] =  ptr_source[channels_input * px + channel];
+//            }
+//    }
+    return 0;
+}
+
+
 /**
  * Host main routine
  */
 int main(int argc, char* argv[]) {
-
     // Read parameters 1- source path, 2- Destination path, 3- Number of threads, 4- algorithm
     if (argc != 4) {
         cout << "Arguments are not complete. Usage: image_path image_result_path n_threads algorithm" << endl;
@@ -89,28 +142,6 @@ int main(int argc, char* argv[]) {
     const int output_bytes = output_image.step * output_image.rows;
 
     unsigned char *d_input, *d_output;
-
-    // Allocate the host input vector A
-    // float *h_A = (float *)malloc(size);
-
-    // Allocate the host input vector B
-    // float *h_B = (float *)malloc(size);
-
-    // Allocate the host output vector C
-    // float *h_C = (float *)malloc(size);
-
-    // Verify that allocations succeeded
-//    if (h_A == NULL || h_B == NULL || h_C == NULL) {
-//        fprintf(stderr, "Failed to allocate host vectors!\n");
-//        exit(EXIT_FAILURE);
-//    }
-
-    // Initialize the host input vectors
-//    for (int i = 0; i < numElements; ++i) {
-//        h_A[i] = rand()/(float)RAND_MAX;
-//        h_B[i] = rand()/(float)RAND_MAX;
-//    }
-
     // Allocate the device input image
 //    float *d_A = NULL;
     err = cudaMalloc<unsigned char>(&d_input, input_bytes);
@@ -150,7 +181,9 @@ int main(int argc, char* argv[]) {
     //int threadsPerBlock = 256;
     // int blocksPerGrid =(numElements + threadsPerBlock - 1) / threadsPerBlock;
     // printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid, threadsPerBlock);
-    vectorAdd<<<grid, block>>>(d_input, d_output, output_image.cols, output_image.rows, input_image.step, output_image.step);
+    tuple <int, int, int> dims_input = make_tuple(input_image.size().width, input_image.size().height, input_image.channels);
+    tuple <int, int, int> dims_output = make_tuple(output_image.size().width, output_image.size().height, output_image.channels);
+    nearest_neighbour_scaling<<<grid, block>>>(d_input, d_output, dims_input, dims_output, input_image.step, output_image.step);
 //    vectorAdd<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_B, d_C, numElements);
     err = cudaGetLastError();
 
