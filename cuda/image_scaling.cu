@@ -105,7 +105,7 @@ __global__ void nearest_neighbour_scaling(
             
             // Calculate the value of the i,j pixel for each channel
         for (int channel = 0; channel < channels_output; channel++){
-            ptr_target[yIndex * xIndex * channels_output + channel] =  ptr_source[py * px * channels_input + channel];
+            output_image[yIndex * xIndex * channels_output + channel] =  input_image[py * px * channels_input + channel];
         }
     }
 }
