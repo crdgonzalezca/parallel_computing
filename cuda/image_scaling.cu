@@ -88,7 +88,7 @@ __global__ void bilinear_scaling(
         float y_diff = (y_ratio * yIndex) - py;
     
         uchar *ptr_img = input_image + (py * input_width_step);
-        uchar *ptr_img_2 = input_image + (py * (input_width_step + 1));
+        uchar *ptr_img_2 = input_image + ((py + 1) * input_width_step);
 
         for (int channel = 0; channel < channels_input; channel++){
             int column = channels_input * px + channel;
