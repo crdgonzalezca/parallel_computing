@@ -175,13 +175,13 @@ int main(int argc, char* argv[]) {
     }
 
     // Compute and print the performance
-    float msecPerMatrixMul = msecTotal / ITERATIONS;
+    float secPerMatrixMul = 1e-3 * msecTotal / ITERATIONS;
     double flopsPerMatrixMul = 2.0 * (double)width_output * (double)height_output * channels_output;
-    double gigaFlops = (flopsPerMatrixMul * 1.0e-9f) / (msecPerMatrixMul / 1000.0f);
+    double gigaFlops = (flopsPerMatrixMul * 1.0e-9f) / (secPerMatrixMul / 1000.0f);
     printf(
-        "Performance= %.2f GFlop/s, Time= %.3f msec, Size= %.0f Ops, WorkgroupSize= %u threads/block\n",
+        "Performance= %.2f GFlop/s, Time= %.8f s, Size= %.0f Ops, WorkgroupSize= %u threads/block\n",
         gigaFlops,
-        msecPerMatrixMul,
+        secPerMatrixMul,
         flopsPerMatrixMul,
         threadsPerBlock.x * threadsPerBlock.y);
 
