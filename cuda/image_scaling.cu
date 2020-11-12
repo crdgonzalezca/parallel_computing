@@ -150,7 +150,7 @@ int main(int argc, char* argv[]) {
     SAFE_CALL(cudaEventCreate(&end), "Failed to create end event");
 
     // Record the start event
-    SAFE_CALL(cudaEventRecord(start, NULL));
+    SAFE_CALL(cudaEventRecord(start, NULL), "Failed to start rescor of start event");
     
     int width_input = input_image.cols;
     int height_input = input_image.rows;
