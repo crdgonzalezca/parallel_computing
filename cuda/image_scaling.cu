@@ -150,9 +150,6 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    // Write the image to a file
-    imwrite(result_image_path, output_image);
-
     // Record the stop event
     err = cudaEventRecord(end, NULL);
     if (err != cudaSuccess){
@@ -194,6 +191,9 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "Failed to copy vector C from device to host (error code %s)!\n", cudaGetErrorString(err));
         exit(EXIT_FAILURE);
     }
+
+    // Write the image to a file
+    imwrite(result_image_path, output_image);
 
     // Free device global memory
     err = cudaFree(d_input);
