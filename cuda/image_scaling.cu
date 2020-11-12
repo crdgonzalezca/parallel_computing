@@ -44,17 +44,63 @@ __global__ void nearest_neighbour_scaling(
     const int yIndex = blockIdx.y * blockDim.y + threadIdx.y;
 
     int px = 0, py = 0; 
-    int input_width_step = width_input * channels_input;
-    int output_width_step = width_output * channels_output;
+    const int input_width_step = width_input * channels_input;
+    const int output_width_step = width_output * channels_output;
+
     if ((xIndex < width_output) && (yIndex < height_output)){
         py = ceil(yIndex * y_ratio);
         px = ceil(xIndex * x_ratio);
         for (int channel = 0; channel < channels_output; channel++){
-            *(output_image + (yIndex * output_width_step + xIndex * channels_output + channel)) =  *(input_image + (py * input_width_step + px * channels_output +  + channel));
+            *(output_image + (yIndex * output_width_step + xIndex * channels_output + channel)) =  *(input_image + (py * input_width_step + px * channels_input + channel));
         }
     }
 }
 
+/**
+Implementation of Bilinear interpolation algorithm to down 
+sample the source image.
+*/
+__global__ void bilinear_scaling(
+    unsigned char *input_image, 
+    unsigned char *output_image,
+    int width_input, 
+    int height_input,
+    int channels_input,
+    int width_output, 
+    int height_output,
+    int channels_output) {
+
+    const float x_ratio = (width_input + 0.0) / width_output;
+    const float y_ratio = (height_input + 0.0) / height_output;
+
+    //2D Index of current thread
+	const int xIndex = blockIdx.x * blockDim.x + threadIdx.x;
+    const int yIndex = blockIdx.y * blockDim.y + threadIdx.y;
+
+    const int input_width_step = width_input * channels_input;
+    const int output_width_step = width_output * channels_output;
+
+    if ((xIndex < width_output) && (yIndex < height_output)){
+        int py = (int)(yIndex * y_ratio);
+        int px = (int)(xIndex * x_ratio);
+    
+        float x_diff = (x_ratio * xIndex) - px;
+        float y_diff = (y_ratio * yIndex) - py;
+    
+        uchar *ptr_img = input_image + (py * input_width_step);
+        uchar *ptr_img_2 = input_image + (py * (input_width_step + 1));
+
+        for (int channel = 0; channel < channels_target; channel++){
+            int column = channels_input * px + channel;
+
+            int pixel_value = *(ptr_img + column) * (1 - x_diff) * (1 - y_diff) +
+                    *(ptr_img + column + channels_input) * x_diff * (1 - y_diff) +
+                    *(ptr_img_2 + column) * (1 - x_diff) * y_diff + 
+                    *(ptr_img_2 + column + channels_input) * x_diff * y_diff;
+            *(output_image + (yIndex * output_width_step + xIndex * channels_output + channel)) = pixel_value;
+        }
+    }
+}
 
 /**
  * Host main routine
@@ -136,13 +182,17 @@ int main(int argc, char* argv[]) {
     int height_output = output_image.rows;
     int channels_output = output_image.channels();
 
-    // Launch the Vector Add CUDA Kernel
     const dim3 threadsPerBlock(threads, threads);
+    //Calculate numBlocks size to cover the whole image        
     const dim3 numBlocks(width_output / threadsPerBlock.x, height_output / threadsPerBlock.y);
 
     for(int i = 0; i < ITERATIONS; i++){
-        //Calculate numBlocks size to cover the whole image
-        nearest_neighbour_scaling<<<numBlocks, threadsPerBlock>>>(d_input, d_output, width_input, height_input, channels_input, width_output, height_output, channels_output);
+        
+        if(algorithm == "Nearest") {
+            nearest_neighbour_scaling<<<numBlocks, threadsPerBlock>>>(d_input, d_output, width_input, height_input, channels_input, width_output, height_output, channels_output);
+        } else if(algorithm == "Bilinear") {
+            bilinear_scaling<<<numBlocks, threadsPerBlock>>>(d_input, d_output, width_input, height_input, channels_input, width_output, height_output, channels_output);
+        }
         err = cudaGetLastError();
         if (err != cudaSuccess) {
             fprintf(stderr, "Failed to launch kernel (error code %s)!\n", cudaGetErrorString(err));
