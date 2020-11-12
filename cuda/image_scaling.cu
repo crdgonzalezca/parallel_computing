@@ -179,11 +179,13 @@ int main(int argc, char* argv[]) {
     double flopsPerMatrixMul = 2.0 * (double)width_output * (double)height_output * channels_output;
     double gigaFlops = (flopsPerMatrixMul * 1.0e-9f) / (secPerMatrixMul / 1000.0f);
     printf(
-        "Performance= %.2f GFlop/s, Time= %.8f s, Size= %.0f Ops, WorkgroupSize= %u threads/block\n",
+        "Performance= %.2f GFlop/s, Time= %.8f s, Size= %.0f Ops, WorkgroupSize= %u threads/block, Blocks= %u\n",
         gigaFlops,
         secPerMatrixMul,
         flopsPerMatrixMul,
-        threadsPerBlock.x * threadsPerBlock.y);
+        threadsPerBlock.x * threadsPerBlock.y,
+        numBlocks.x * numBlocks.y
+    );
 
     // Copy the device result vector in device memory to the host result vector
     // in host memory.
