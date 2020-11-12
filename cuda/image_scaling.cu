@@ -2,7 +2,7 @@
 // For the CUDA runtime routines (prefixed with "cuda_")
 #include <cuda_runtime.h>
 #include <helper_cuda.h>
-# include <opencv2/opencv.hpp>
+#include <opencv2/opencv.hpp>
 #include <bits/stdc++.h>
 #include <sys/time.h>
 
@@ -11,8 +11,7 @@ using namespace std;
 
 #define RESULT_WIDTH 720
 #define RESULT_HEIGHT 480
-#define ITERATIONS 10
-#define MS 1000000.0
+#define ITERATIONS 20
 
 // Function taken from https://github.com/sshniro/opencv-samples/blob/master/cuda-bgr-grey.cpp
 static inline void _safe_cuda_call(cudaError err, const char* msg, const char* file_name, const int line_number) {
@@ -59,8 +58,9 @@ __global__ void nearest_neighbour_scaling(
 }
 
 /**
-Implementation of Bilinear interpolation algorithm to down 
-sample the source image.
+* CUDA Kernel Device code
+*
+* Implementation of Bilinear interpolation algorithm to down sample the source image.
 */
 __global__ void bilinear_scaling(
     unsigned char *input_image, 
@@ -108,10 +108,10 @@ __global__ void bilinear_scaling(
  * Host main routine
  */
 int main(int argc, char* argv[]) {
-    // Read parameters 1- source path, 2- Destination path, 3- algorithm
+    // Read parameters 1- source path, 2- Destination path, 3-threads, 4- algorithm
     if (argc != 5) {
-        cout << "Arguments are not complete. Usage: image_path image_result_path n_threads algorithm" << endl;
-        return 1;
+        printf("Arguments are not complete. Usage: image_path image_result_path n_threads algorithm.\n");
+        exit(EXIT_FAILURE);
     }
     const string source_image_path = argv[1];
     const string result_image_path = argv[2];
@@ -127,7 +127,7 @@ int main(int argc, char* argv[]) {
     Mat input_image = imread(source_image_path);
     if(input_image.empty()) {
         printf("Error reading image.");
-        return 1;
+        exit(EXIT_FAILURE);
     }
     
     // Matrices sizes width * height * 3
@@ -183,7 +183,7 @@ int main(int argc, char* argv[]) {
     SAFE_CALL(cudaEventElapsedTime(&msecTotal, start, end), "Failed to get time elapsed between events");
 
     // Compute and print the performance
-    float secPerMatrixMul = 1e-3 * msecTotal / ITERATIONS;
+    float secPerMatrixMul = msecTotal / (ITERATIONS * 1000.0f);
     double flopsPerMatrixMul = 2.0 * (double)width_output * (double)height_output * channels_output;
     double gigaFlops = (flopsPerMatrixMul * 1.0e-9f) / (secPerMatrixMul / 1000.0f);
     printf(
