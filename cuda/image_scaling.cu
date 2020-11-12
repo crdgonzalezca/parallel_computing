@@ -90,7 +90,7 @@ __global__ void bilinear_scaling(
         uchar *ptr_img = input_image + (py * input_width_step);
         uchar *ptr_img_2 = input_image + (py * (input_width_step + 1));
 
-        for (int channel = 0; channel < channels_target; channel++){
+        for (int channel = 0; channel < channels_input; channel++){
             int column = channels_input * px + channel;
 
             int pixel_value = *(ptr_img + column) * (1 - x_diff) * (1 - y_diff) +
