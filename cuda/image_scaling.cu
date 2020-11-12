@@ -14,13 +14,15 @@ using namespace std;
 #define ITERATIONS 10
 #define MS 1000000.0
 
-typedef unsigned long long timestamp_t;
-
-timestamp_t get_timestamp (){
-    struct timeval now;
-    gettimeofday (&now, NULL);
-    return now.tv_usec + (timestamp_t)now.tv_sec * 1000000;
+// Function taken from https://github.com/sshniro/opencv-samples/blob/master/cuda-bgr-grey.cpp
+static inline void _safe_cuda_call(cudaError err, const char* msg, const char* file_name, const int line_number) {
+	if (err != cudaSuccess) {
+		fprintf(stderr, "%s\n\nFile: %s\n\nLine Number: %d\n\nReason: %s\n", msg, file_name, line_number, cudaGetErrorString(err));
+		exit(EXIT_FAILURE);
+	}
 }
+
+#define SAFE_CALL(call,msg) _safe_cuda_call((call),(msg),__FILE__,__LINE__)
 
 /**
  * CUDA Kernel Device code
@@ -119,9 +121,6 @@ int main(int argc, char* argv[]) {
     // time measurement variables
     cudaEvent_t start, end;
 
-    // Error code to check return values for CUDA calls
-    cudaError_t err = cudaSuccess;
-
     // Create result image of 720x480 pixels with 3 channels
     Mat output_image(RESULT_HEIGHT, RESULT_WIDTH, CV_8UC3, Scalar(255, 255, 255)); 
     // Read the image from the given source path
@@ -137,44 +136,22 @@ int main(int argc, char* argv[]) {
 
     unsigned char *d_input, *d_output;
     // Allocate the device input image
-    err = cudaMalloc<unsigned char>(&d_input, input_bytes);
-    if (err != cudaSuccess) {
-        fprintf(stderr, "Failed to allocate device input image (error code %s)!\n", cudaGetErrorString(err));
-        exit(EXIT_FAILURE);
-    }
-
-    err = cudaMalloc<unsigned char>(&d_output, output_bytes);
-    if (err != cudaSuccess) {
-        fprintf(stderr, "Failed to allocate device output image (error code %s)!\n", cudaGetErrorString(err));
-        exit(EXIT_FAILURE);
-    }
+    SAFE_CALL(cudaMalloc<unsigned char>(&d_input, input_bytes), "Failed to allocate device input image.");
+    // Allocate the device output image
+    SAFE_CALL(cudaMalloc<unsigned char>(&d_output, output_bytes), "Failed to allocate device output image.");
 
     // Copy the host input image in host memory to the device input image in device memory
-    err = cudaMemcpy(d_input, input_image.ptr(), input_bytes, cudaMemcpyHostToDevice);
-    if (err != cudaSuccess) {
-        fprintf(stderr, "Failed to copy input image from host to device (error code %s)!\n", cudaGetErrorString(err));
-        exit(EXIT_FAILURE);
-    }
+    SAFE_CALL(cudaMemcpy(d_input, input_image.ptr(), input_bytes, cudaMemcpyHostToDevice), "Failed to copy input image from host to device");
 
-    err = cudaEventCreate(&start);
-    if (err != cudaSuccess){
-        fprintf(stderr, "Failed to create start event (error code %s)!\n", cudaGetErrorString(err));
-        exit(EXIT_FAILURE);
-    }
+    // Create event to measure start time
+    SAFE_CALL(cudaEventCreate(&start), "Failed to create start event.");
 
-    err = cudaEventCreate(&end);
-    if (err != cudaSuccess) {
-        fprintf(stderr, "Failed to create stop event (error code %s)!\n", cudaGetErrorString(err));
-        exit(EXIT_FAILURE);
-    }
+    // Create event to measure end time
+    SAFE_CALL(cudaEventCreate(&end), "Failed to create end event");
 
     // Record the start event
-    err = cudaEventRecord(start, NULL);
-    if (err != cudaSuccess){
-        fprintf(stderr, "Failed to record start event (error code %s)!\n", cudaGetErrorString(err));
-        exit(EXIT_FAILURE);
-    }
-
+    SAFE_CALL(cudaEventRecord(start, NULL));
+    
     int width_input = input_image.cols;
     int height_input = input_image.rows;
     int channels_input = input_image.channels();
@@ -186,40 +163,24 @@ int main(int argc, char* argv[]) {
     //Calculate numBlocks size to cover the whole image        
     const dim3 numBlocks(width_output / threadsPerBlock.x, height_output / threadsPerBlock.y);
 
+    // Run kernel several times to measure an average time.
     for(int i = 0; i < ITERATIONS; i++){
-        
         if(algorithm == "Nearest") {
             nearest_neighbour_scaling<<<numBlocks, threadsPerBlock>>>(d_input, d_output, width_input, height_input, channels_input, width_output, height_output, channels_output);
         } else if(algorithm == "Bilinear") {
             bilinear_scaling<<<numBlocks, threadsPerBlock>>>(d_input, d_output, width_input, height_input, channels_input, width_output, height_output, channels_output);
         }
-        err = cudaGetLastError();
-        if (err != cudaSuccess) {
-            fprintf(stderr, "Failed to launch kernel (error code %s)!\n", cudaGetErrorString(err));
-            exit(EXIT_FAILURE);
-        }
+        SAFE_CALL(cudaGetLastError(), "Failed to launch kernel");
     }
 
     // Record the stop event
-    err = cudaEventRecord(end, NULL);
-    if (err != cudaSuccess){
-        fprintf(stderr, "Failed to record stop event (error code %s)!\n", cudaGetErrorString(err));
-        exit(EXIT_FAILURE);
-    }
+    SAFE_CALL(cudaEventRecord(end, NULL), "Failed to record end event.");
 
     // Wait for the stop event to complete
-    err = cudaEventSynchronize(end);
-    if (err != cudaSuccess){
-        fprintf(stderr, "Failed to synchronize on the stop event (error code %s)!\n", cudaGetErrorString(err));
-        exit(EXIT_FAILURE);
-    }
+    SAFE_CALL(cudaEventSynchronize(end), "Failed to synchronize on the end event");
 
     float msecTotal = 0.0f;
-    err = cudaEventElapsedTime(&msecTotal, start, end);
-    if (err != cudaSuccess){
-        fprintf(stderr, "Failed to get time elapsed between events (error code %s)!\n", cudaGetErrorString(err));
-        exit(EXIT_FAILURE);
-    }
+    SAFE_CALL(cudaEventElapsedTime(&msecTotal, start, end), "Failed to get time elapsed between events");
 
     // Compute and print the performance
     float secPerMatrixMul = 1e-3 * msecTotal / ITERATIONS;
@@ -234,29 +195,16 @@ int main(int argc, char* argv[]) {
         numBlocks.x * numBlocks.y
     );
 
-    // Copy the device result vector in device memory to the host result vector
-    // in host memory.
-    err = cudaMemcpy(output_image.ptr(), d_output, output_bytes, cudaMemcpyDeviceToHost);
-    if (err != cudaSuccess) {
-        fprintf(stderr, "Failed to copy vector C from device to host (error code %s)!\n", cudaGetErrorString(err));
-        exit(EXIT_FAILURE);
-    }
+    // Copy the device output image in device memory to the host output image in host memory.
+    SAFE_CALL(cudaMemcpy(output_image.ptr(), d_output, output_bytes, cudaMemcpyDeviceToHost), "Failed to copy output image from device to host");
 
     // Write the image to a file
     imwrite(result_image_path, output_image);
 
     // Free device global memory
-    err = cudaFree(d_input);
-    if (err != cudaSuccess) {
-        fprintf(stderr, "Failed to free device vector A (error code %s)!\n", cudaGetErrorString(err));
-        exit(EXIT_FAILURE);
-    }
+    SAFE_CALL(cudaFree(d_input), "Failed to free device input image");
+    SAFE_CALL(cudaFree(d_output), "Failed to free device output image");
 
-    err = cudaFree(d_output);
-    if (err != cudaSuccess) {
-        fprintf(stderr, "Failed to free device vector B (error code %s)!\n", cudaGetErrorString(err));
-        exit(EXIT_FAILURE);
-    }
     printf("Done\n");
     return 0;
 }
