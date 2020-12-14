@@ -126,8 +126,7 @@ int main(int argc, char* argv[]) {
 
     int tasks, iam, root=0;
     int total_pixels = RESULT_WIDTH * RESULT_HEIGHT * 3;
-    double start, end, abs_time;
-    double max_time = 0.0, min_time = -1.0, avg_time = 0.0;
+    double start, end, abs_time, avg_time = 0.0;
 
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &tasks);
@@ -155,15 +154,11 @@ int main(int argc, char* argv[]) {
 
     end = MPI_Wtime();
     abs_time = end - start;
-    MPI_Reduce(&end, &max_time, 1, MPI_DOUBLE, MPI_MAX, root, MPI_COMM_WORLD);
-
-    MPI_Reduce(&start, &min_time, 1, MPI_DOUBLE, MPI_MIN, root, MPI_COMM_WORLD);
-
     MPI_Reduce(&abs_time, &avg_time, 1, MPI_DOUBLE, MPI_SUM, root, MPI_COMM_WORLD);
     
     if (iam == root){
         avg_time /= tasks;
-        printf("Min: %f, Max: %f, Diff: %f, Avg: %f\n", min_time, max_time, max_time - min_time, avg_time);
+        printf("%f\n", avg_time);
         imwrite(result_image_path, result_image); //Write the image to a file
     }
     MPI_Finalize();
