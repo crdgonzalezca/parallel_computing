@@ -1,7 +1,6 @@
 #include "mpi.h"
 #include <opencv2/opencv.hpp>
 #include <bits/stdc++.h>
-#include <sys/time.h>
 
 using namespace cv;
 using namespace std;
@@ -17,12 +16,6 @@ typedef unsigned long long timestamp_t;
 // Create result image of 720x480 pixels with 3 channels
 Mat result_image(RESULT_HEIGHT, RESULT_WIDTH, CV_8UC3, Scalar(255, 255, 255)); 
 Mat img;
-
-timestamp_t get_timestamp (){
-    struct timeval now;
-    gettimeofday (&now, NULL);
-    return now.tv_usec + (timestamp_t)now.tv_sec * 1000000;
-}
 
 /**
 Implementation of Nearest Neighbour interpolation algorithm to down 
@@ -133,9 +126,8 @@ int main(int argc, char* argv[]) {
 
     int tasks, iam, root=0;
     int total_pixels = RESULT_WIDTH * RESULT_HEIGHT * 3;
-
-    float measured_time;
-    timestamp_t start, end;
+    double start, end, abs_time;
+    double max_time = 0.0, min_time = -1.0, avg_time = 0.0;
 
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &tasks);
@@ -150,7 +142,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    start = get_timestamp();
+    start = MPI_Wtime();
     if(algorithm == "Nearest"){
         nearest_neighbour_scaling(iam, tasks);
     }else if(algorithm == "Bilinear"){
@@ -161,16 +153,17 @@ int main(int argc, char* argv[]) {
                 result_image.ptr(), pixels_per_proc, MPI_UNSIGNED_CHAR, 
                 root, MPI_COMM_WORLD);
 
-    end = get_timestamp();
-    measured_time = (float)(end - start) / MS;
-    printf("%f, %d\n", measured_time, iam);
+    end = MPI_Wtime();
+    abs_time = end - start;
+    MPI_Reduce(&end, &max_time, 1, MPI_DOUBLE, MPI_MAX, root, MPI_COMM_WORLD);
 
-    float max_time = 0.0;
-    MPI_Reduce(&measured_time, &max_time, 1, MPI_FLOAT, MPI_MAX, root, MPI_COMM_WORLD);
+    MPI_Reduce(&start, &min_time, 1, MPI_DOUBLE, MPI_MIN, root, MPI_COMM_WORLD);
 
+    MPI_Reduce(&abs_time, &avg_time, 1, MPI_DOUBLE, MPI_SUM, root, MPI_COMM_WORLD);
+    
     if (iam == root){
-        float time_result = max_time;
-        printf("%f, %d\n", time_result, tasks);
+        avg_time /= tasks;
+        printf("Min: %f, Max: %f, Diff: %f, Avg: %f\n", min_time, max_time, max_time - min_time, avg_time);
         imwrite(result_image_path, result_image); //Write the image to a file
     }
     MPI_Finalize();
