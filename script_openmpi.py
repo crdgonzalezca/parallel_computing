@@ -3,7 +3,7 @@ import subprocess
 import os
 
 
-command = "mpic++ image_scaling_openmpi.cpp -o image_scaling_openmpi `pkg-config --cflags --libs opencv` -lm"
+command = "mpic++ image_scaling_openmpi.cpp -o image_scaling_openmpi -std=c++11 `pkg-config --cflags --libs opencv` -lm"
 os.system(command)
 
 _ITERATIONS = 10
